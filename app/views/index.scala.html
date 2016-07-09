@@ -1,0 +1,60 @@
+@(message: String)(implicit request: RequestHeader)
+
+@main(message) {
+    <div id="tweets"></div>
+    <script type="text/javascript">
+
+        if (Notification.permission !== 'denied' || Notification.permission === "default") {
+            Notification.requestPermission()
+        }
+
+        var tweetContainer = document.getElementById("tweets");
+        var tagCounter = 0;
+
+        function addTweet(text) {
+            var tweet = document.createElement("p");
+            var message = document.createTextNode(text);
+            tweet.appendChild(message);
+            tweetContainer.insertBefore(tweet, tweetContainer.firstChild);
+
+            if (tweetContainer.childNodes.length > 3) {
+                tweetContainer.removeChild(tweetContainer.lastChild);
+            }
+
+            if (Notification.permission === "granted") {
+                tagCounter++;
+                var n = new Notification(text, {tag: tagCounter % 3});
+                setTimeout(n.close.bind(n), 5000);
+            }
+        }
+
+        function connect(attempt) {
+            var connectionAttempt = attempt;
+            var url = "@routes.Application.tweets().webSocketURL()";
+            var tweetSocket = new WebSocket(url);
+
+            tweetSocket.onmessage = function (event) {
+                var data = JSON.parse(event.data);
+                console.log(data);
+                addTweet(data.text);
+            };
+            tweetSocket.onopen = function() {
+                connectionAttempt = 1;
+                tweetSocket.send("subscribe");
+            };
+            tweetSocket.onclose = function() {
+                if (connectionAttempt <= 3) {
+                    addTweet("WARNING: Lost server connection, attempting to reconnect. Attempt number " + connectionAttempt);
+                    setTimeout(function() {
+                        connect(connectionAttempt + 1);
+                    }, 5000);
+                } else {
+                    alert("The connection with the server was lost.");
+                }
+            };
+        }
+
+        connect(1);
+
+    </script>
+}

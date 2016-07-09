@@ -1,0 +1,8 @@
+
+play.crypto.secret = ""
+
+# Twitter credentials
+twitter.apiKey = ""
+twitter.apiSecret = ""
+twitter.token = ""
+twitter.tokenSecret = ""
